@@ -2,10 +2,10 @@
 -- (không bịa ID bài hát); có thể thay bằng link bài cụ thể sau.
 
 INSERT INTO genres (name) VALUES
-    ('Pop'), ('Rock'), ('V-Pop'), ('Indie'), ('Jazz');
+    ('Pop'), ('Dream-Pop'), ('V-Pop'), ('Indie'), ('Alternative'), ('Hyperpop') ;
 
 INSERT INTO artists (name, country, spotify_url, apple_music_url) VALUES
-    ('Taylor Swift', 'US', 'https://open.spotify.com/search/Taylor%20Swift', 'https://music.apple.com/search?term=Taylor%20Swift'),
+    ('Phùng Khánh Linh', 'US', 'https://open.spotify.com/search/Taylor%20Swift', 'https://music.apple.com/search?term=Taylor%20Swift'),
     ('Coldplay',     'UK', 'https://open.spotify.com/search/Coldplay',       'https://music.apple.com/search?term=Coldplay'),
     ('Sơn Tùng M-TP','VN', 'https://open.spotify.com/search/Son%20Tung%20M-TP', 'https://music.apple.com/search?term=Son%20Tung%20M-TP'),
     ('Đen',          'VN', 'https://open.spotify.com/search/Den%20Vau',      'https://music.apple.com/search?term=Den%20Vau'),
