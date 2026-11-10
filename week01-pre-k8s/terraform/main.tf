@@ -56,3 +56,39 @@ resource "aws_ecr_lifecycle_policy" "this" {
     }]
   })
 }
+
+# 1. OIDC provider: AWS tin các token do GitHub ký.
+resource "aws_iam_openid_connect_provider" "github" {
+  url            = var.github_oidc_url
+  client_id_list = ["sts.amazonaws.com"]
+}
+
+# 2. Trust policy: ai được nhận role. Điều kiện `sub` giới hạn theo repo và nhánh.
+data "aws_iam_policy_document" "github_trust" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = var.github_subjects
+    }
+  }
+}
+
+# 3. Role cho GitHub Actions. Chưa gắn quyền gì (sẽ thêm policy push ECR sau).
+resource "aws_iam_role" "github_actions" {
+  name               = var.iam_role_name
+  assume_role_policy = data.aws_iam_policy_document.github_trust.json
+}
