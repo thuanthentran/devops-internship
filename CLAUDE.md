@@ -30,6 +30,14 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 5. Route53 + certbot
 6. Thêm ngôn ngữ / DB phụ
 
+## Tiến độ
+- [x] 1. Schema + seed Postgres (`week01-pre-k8s/db/postgres`, 6 nghệ sĩ/11 bài/3 playlist). Script init chỉ chạy khi volume trống: sửa schema/seed phải `docker compose down -v`.
+- [x] 2. Node API (`apps/api`, Express + pg, cổng 3000) + React/Vite (`apps/web`, nginx cổng 8080 proxy `/api` sang API), chạy bằng `docker compose up -d --build` trong `week01-pre-k8s/`. Cổng chỉ bind 127.0.0.1.
+- [ ] 3. Terraform OIDC + ECR + workflow build-push-ecr
+  - [x] ECR repos `music-api`, `music-web` (`week01-pre-k8s/terraform`, tag IMMUTABLE, giữ 10 image, đã apply và push thử `music-api:v1`). State local, `terraform.tfstate` không commit.
+  - [ ] OIDC provider + role `github-actions-ecr`
+  - [ ] Workflow `.github/workflows/build-push-ecr.yml`
+
 ## Quy ước
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
 - Không commit secret, `*.tfstate`, `.env` (đã có `.gitignore`). Dùng `.env.example`.

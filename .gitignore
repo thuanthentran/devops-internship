@@ -8,3 +8,6 @@
 .env.*
 !.env.example
 node_modules/
+
+# Thùng rác của IDE (freedesktop trash)
+.Trash-*/
