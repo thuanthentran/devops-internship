@@ -1,22 +1,43 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      # Chỉ mở trên localhost của dev box, không lộ ra internet.
-      - "127.0.0.1:5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
       - ./db/postgres:/docker-entrypoint-initdb.d:ro
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  api:
+    build: 
+      context: ./apps/api
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  web:
+    build:
+      context: ./apps/web
+    restart: unless-stopped
+    ports:
+    - "127.0.0.1:8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
 volumes:
-  pgdata:
+  postgres_data:
