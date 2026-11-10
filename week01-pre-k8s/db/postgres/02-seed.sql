@@ -5,12 +5,12 @@ INSERT INTO genres (name) VALUES
     ('Pop'), ('Dream-Pop'), ('V-Pop'), ('Indie'), ('Alternative'), ('Hyperpop') ;
 
 INSERT INTO artists (name, country, spotify_url, apple_music_url) VALUES
-    ('Phùng Khánh Linh', 'US', 'https://open.spotify.com/search/Taylor%20Swift', 'https://music.apple.com/search?term=Taylor%20Swift'),
-    ('Coldplay',     'UK', 'https://open.spotify.com/search/Coldplay',       'https://music.apple.com/search?term=Coldplay'),
-    ('Sơn Tùng M-TP','VN', 'https://open.spotify.com/search/Son%20Tung%20M-TP', 'https://music.apple.com/search?term=Son%20Tung%20M-TP'),
-    ('Đen',          'VN', 'https://open.spotify.com/search/Den%20Vau',      'https://music.apple.com/search?term=Den%20Vau'),
-    ('Norah Jones',  'US', 'https://open.spotify.com/search/Norah%20Jones',   'https://music.apple.com/search?term=Norah%20Jones'),
-    ('Arctic Monkeys','UK','https://open.spotify.com/search/Arctic%20Monkeys','https://music.apple.com/search?term=Arctic%20Monkeys');
+    ('Phùng Khánh Linh', 'VN', 'https://open.spotify.com/search/Phung%20Khanh%20Linh', 'https://music.apple.com/search?term=Phung%20Khanh%20Linh'),
+    ('Olivia Rodrigo',   'US', 'https://open.spotify.com/search/Olivia%20Rodrigo',     'https://music.apple.com/search?term=Olivia%20Rodrigo'),
+    ('Sabrina Carpenter','US', 'https://open.spotify.com/search/Sabrina%20Carpenter',  'https://music.apple.com/search?term=Sabrina%20Carpenter'),
+    ('Ariana Grande',    'US', 'https://open.spotify.com/search/Ariana%20Grande',      'https://music.apple.com/search?term=Ariana%20Grande'),
+    ('aespa',            'KR', 'https://open.spotify.com/search/aespa',                'https://music.apple.com/search?term=aespa'),
+    ('Adele',            'UK', 'https://open.spotify.com/search/Adele',                'https://music.apple.com/search?term=Adele');
 
 -- Chèn bài hát bằng tên nghệ sĩ/thể loại thay vì ID cứng.
 INSERT INTO songs (title, artist_id, genre_id, release_year, duration_sec, spotify_url, apple_music_url)
@@ -18,16 +18,17 @@ SELECT s.title, a.id, g.id, s.release_year, s.duration_sec,
        'https://open.spotify.com/search/' || replace(s.title || ' ' || s.artist, ' ', '%20'),
        'https://music.apple.com/search?term=' || replace(s.title || ' ' || s.artist, ' ', '%20')
 FROM (VALUES
-    ('Love Story',            'Taylor Swift',   'Pop',   2008, 235),
-    ('Anti-Hero',             'Taylor Swift',   'Pop',   2022, 200),
-    ('Yellow',                'Coldplay',       'Rock',  2000, 269),
-    ('Viva La Vida',          'Coldplay',       'Rock',  2008, 242),
-    ('Lạc Trôi',              'Sơn Tùng M-TP',  'V-Pop', 2017, 233),
-    ('Chúng Ta Của Hiện Tại', 'Sơn Tùng M-TP',  'V-Pop', 2020, 301),
-    ('Mang Tiền Về Cho Mẹ',   'Đen',            'V-Pop', 2021, 404),
-    ('Don''t Know Why',       'Norah Jones',    'Jazz',  2002, 186),
-    ('Do I Wanna Know?',      'Arctic Monkeys', 'Indie', 2013, 272),
-    ('505',                   'Arctic Monkeys', 'Indie', 2007, 253)
+    ('Ước Anh Tan Nát Con Tim','Phùng Khánh Linh', 'V-Pop',      2024, 230),
+    ('good 4 u',           'Olivia Rodrigo',   'Alternative', 2021, 178),
+    ('drivers license',    'Olivia Rodrigo',   'Pop',         2021, 242),
+    ('Espresso',           'Sabrina Carpenter','Pop',         2024, 175),
+    ('Please Please Please','Sabrina Carpenter','Pop',        2024, 186),
+    ('7 rings',            'Ariana Grande',    'Pop',         2019, 178),
+    ('thank u, next',      'Ariana Grande',    'Pop',         2018, 207),
+    ('Supernova',          'aespa',            'Hyperpop',    2024, 179),
+    ('Next Level',         'aespa',            'Hyperpop',    2021, 221),
+    ('Someone Like You',   'Adele',            'Pop',         2011, 285),
+    ('Hello',              'Adele',            'Pop',         2015, 295)
 ) AS s(title, artist, genre, release_year, duration_sec)
 JOIN artists a ON a.name = s.artist
 JOIN genres  g ON g.name = s.genre;
@@ -35,21 +36,22 @@ JOIN genres  g ON g.name = s.genre;
 INSERT INTO playlists (name, description) VALUES
     ('Chill buổi tối', 'Nhẹ nhàng để thư giãn'),
     ('Code mode',      'Nghe khi tập trung làm việc'),
-    ('Nhạc Việt',      'Các bài V-Pop yêu thích');
+    ('Pop nữ',         'Các giọng nữ pop yêu thích');
 
 INSERT INTO playlist_songs (playlist_id, song_id, position)
 SELECT p.id, s.id, x.position
 FROM (VALUES
-    ('Chill buổi tối', 'Don''t Know Why',        1),
-    ('Chill buổi tối', 'Yellow',                 2),
-    ('Chill buổi tối', 'Chúng Ta Của Hiện Tại',  3),
-    ('Code mode',      'Do I Wanna Know?',       1),
-    ('Code mode',      'Viva La Vida',           2),
-    ('Code mode',      '505',                    3),
-    ('Code mode',      'Anti-Hero',              4),
-    ('Nhạc Việt',      'Lạc Trôi',               1),
-    ('Nhạc Việt',      'Chúng Ta Của Hiện Tại',  2),
-    ('Nhạc Việt',      'Mang Tiền Về Cho Mẹ',    3)
+    ('Chill buổi tối', 'Someone Like You',    1),
+    ('Chill buổi tối', 'drivers license',     2),
+    ('Chill buổi tối', 'Ước Anh Tan Nát Con Tim',   3),
+    ('Code mode',      'Supernova',           1),
+    ('Code mode',      'Next Level',          2),
+    ('Code mode',      'good 4 u',            3),
+    ('Code mode',      'Espresso',            4),
+    ('Pop nữ',         '7 rings',             1),
+    ('Pop nữ',         'thank u, next',       2),
+    ('Pop nữ',         'Please Please Please',3),
+    ('Pop nữ',         'Hello',               4)
 ) AS x(playlist, title, position)
 JOIN playlists p ON p.name = x.playlist
 JOIN songs     s ON s.title = x.title;
