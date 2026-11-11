@@ -1,0 +1,19 @@
+name: learn-github-actions
+run-name: CI Build for app-api and app-web
+on:
+  push:
+    branches: 
+      - 'week01/**'
+      - main
+permissions: 
+  id-token: write 
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@v6
+      - run: docker build -t music-${{ matrix.app }}:${{ github.sha }} week01-pre-k8s/apps/${{ matrix.app }}
