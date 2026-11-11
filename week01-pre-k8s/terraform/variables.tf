@@ -32,7 +32,18 @@ variable "github_subjects" {
   description = "Các workflow GitHub được phép nhận role (định dạng của claim `sub`)"
   type        = list(string)
   default = [
-    "repo:thuanthentran/devops-internship:ref:refs/heads/main",
-    "repo:thuanthentran/devops-internship:ref:refs/heads/week01/*",
+    "repo:thuanthentran@158747017/devops-internship@1451498040:ref:refs/heads/main",
+    "repo:thuanthentran@158747017/devops-internship@1451498040:ref:refs/heads/week01/*"
   ]
+}
+
+variable "instance_type" {
+  description = "Xài instance bự cỡ nào đây"
+  type        = string
+  default     = "c7i-flex.large"
+}
+
+variable "devbox_sg_id" {
+  type    = string
+  default = "sg-0d0ffc9f3028230e3"
 }

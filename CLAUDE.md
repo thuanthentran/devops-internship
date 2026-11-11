@@ -18,7 +18,7 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 - React frontend (`app.<domain>`) + Node API (`node.<domain>`).
 - Sau đó: python, go, php, spring, quarkus, rails, mỗi ngôn ngữ một service nhỏ đọc DB, subdomain riêng.
 - Deploy: docker compose trên 1 EC2 lớn tạo bằng Terraform, nginx reverse proxy, certbot HTTPS,
-  Route53 subdomain. Tên miền: chưa mua.
+  Route53 subdomain. Tên miền: `thenttthytlu.io.vn` (đã có; định ủy quyền một subdomain sang Route53).
 - CI: GitHub Actions build → ECR, đăng nhập bằng OIDC role `github-actions-ecr` (không static key).
 - Terraform tạo hạ tầng; Ansible cấu hình + deploy lại (sau khi bản user_data chạy được).
 
@@ -33,10 +33,14 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 ## Tiến độ
 - [x] 1. Schema + seed Postgres (`week01-pre-k8s/db/postgres`, 6 nghệ sĩ/11 bài/3 playlist). Script init chỉ chạy khi volume trống: sửa schema/seed phải `docker compose down -v`.
 - [x] 2. Node API (`apps/api`, Express + pg, cổng 3000) + React/Vite (`apps/web`, nginx cổng 8080 proxy `/api` sang API), chạy bằng `docker compose up -d --build` trong `week01-pre-k8s/`. Cổng chỉ bind 127.0.0.1.
-- [ ] 3. Terraform OIDC + ECR + workflow build-push-ecr
+- [x] 3. Terraform OIDC + ECR + workflow build-push-ecr
   - [x] ECR repos `music-api`, `music-web` (`week01-pre-k8s/terraform`, tag IMMUTABLE, giữ 10 image, đã apply và push thử `music-api:v1`). State local, `terraform.tfstate` không commit.
   - [x] OIDC provider + role `github-actions-ecr` (đã apply; chỉ nhánh `main` và `week01/*` của repo này được assume; role chỉ có quyền push vào 2 repo ECR). Terraform chia file: `providers.tf`, `ecr.tf`, `github-oidc.tf`.
-  - [ ] Workflow `.github/workflows/build-push-ecr.yml`
+  - [x] Workflow `.github/workflows/github-action.yaml` (matrix api/web, OIDC, push ECR tag = commit SHA; đã chạy xanh). Lưu ý: claim `sub` của GitHub có ID bất biến (`repo:owner@id/repo@id:ref:...`), xem `github_subjects`.
+- [ ] 4. Terraform EC2 + nginx (`c7i-flex.large`; domain đã có)
+  - [x] Security group `music-web` (80/443 public, SSH chỉ từ SG dev box) — đã apply.
+  - [ ] IAM role `music-ec2-role` + instance profile `music-ec2` (pull ECR) — đã viết, plan ok, chưa apply (`ec2-iam.tf`).
+  - [ ] `aws_instance` + user_data (Docker), compose, nginx
 
 ## Quy ước
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
