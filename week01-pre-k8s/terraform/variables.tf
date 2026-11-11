@@ -16,6 +16,12 @@ variable "keep_images" {
   default     = 10
 }
 
+variable "iam_role" {
+  description = "Tên IAM role cho GitHub Actions"
+  type        = string
+  default     = "github-actions-ecr"
+}
+
 variable "github_oidc_url" {
   description = "URL nơi GitHub phát token OIDC"
   type        = string
@@ -29,10 +35,4 @@ variable "github_subjects" {
     "repo:thuanthentran/devops-internship:ref:refs/heads/main",
     "repo:thuanthentran/devops-internship:ref:refs/heads/week01/*",
   ]
-}
-
-variable "iam_role_name" {
-  description = "Tên IAM role cho GitHub Actions"
-  type        = string
-  default     = "github-actions-ecr"
 }
