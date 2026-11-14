@@ -37,11 +37,13 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - [x] ECR repos `music-api`, `music-web` (`week01-pre-k8s/terraform`, tag IMMUTABLE, giữ 10 image, đã apply và push thử `music-api:v1`). State local, `terraform.tfstate` không commit.
   - [x] OIDC provider + role `github-actions-ecr` (đã apply; chỉ nhánh `main` và `week01/*` của repo này được assume; role chỉ có quyền push vào 2 repo ECR). Terraform chia file: `providers.tf`, `ecr.tf`, `github-oidc.tf`.
   - [x] Workflow `.github/workflows/github-action.yaml` (matrix api/web, OIDC, push ECR tag = commit SHA; đã chạy xanh). Lưu ý: claim `sub` của GitHub có ID bất biến (`repo:owner@id/repo@id:ref:...`), xem `github_subjects`.
-- [ ] 4. Terraform EC2 + nginx (`c7i-flex.large`; domain đã có)
+- [x] 4. Terraform EC2 + deploy (nginx front proxy làm ở bước 5 cùng certbot) (`c7i-flex.large`; domain đã có)
   - [x] Security group `music-web` (80/443 public, SSH chỉ từ SG dev box) — đã apply.
   - [x] IAM role `music-ec2-role` + instance profile `music-ec2` (pull ECR) — đã apply (`ec2-iam.tf`).
   - [x] EC2 `deliver-instance` (`aws_instance.tf`, module ec2-instance, Ubuntu 24.04, `c7i-flex.large`, 20GB gp3, IMDSv2, key `music-ec2` ở `~/.ssh/music-ec2`) — đã apply; user_data cài Docker + compose + aws-cli. Đã kiểm tra pull ECR bằng role. SSH chỉ qua IP private (rule SG nguồn là SG dev box).
-  - [ ] Compose prod (image từ ECR) + nginx container, đưa lên EC2 (tay trước, Ansible sau)
+  - [x] Compose prod (`docker-compose.prod.yml`, image từ ECR theo digest, `web` publish cổng 80) + Ansible (`week01-pre-k8s/ansible/`: `inventory.ini`, `deploy.yaml`). Deploy: `cd week01-pre-k8s/ansible && ansible-playbook -i inventory.ini deploy.yaml`. Đã chạy, `curl http://<public_ip>/api/artists` OK. IP public đổi khi stop/start; Ansible dùng IP private (`terraform output private_ip`).
+
+- [ ] 5. Route53 + certbot: cần Elastic IP (`aws_eip`), zone subdomain `lab.thenttthytlu.io.vn` ủy quyền NS từ nhà đăng ký, nginx phía trước route theo Host (`app.`/`node.`), certbot HTTP-01.
 
 ## Quy ước
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
