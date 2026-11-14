@@ -39,8 +39,9 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - [x] Workflow `.github/workflows/github-action.yaml` (matrix api/web, OIDC, push ECR tag = commit SHA; đã chạy xanh). Lưu ý: claim `sub` của GitHub có ID bất biến (`repo:owner@id/repo@id:ref:...`), xem `github_subjects`.
 - [ ] 4. Terraform EC2 + nginx (`c7i-flex.large`; domain đã có)
   - [x] Security group `music-web` (80/443 public, SSH chỉ từ SG dev box) — đã apply.
-  - [ ] IAM role `music-ec2-role` + instance profile `music-ec2` (pull ECR) — đã viết, plan ok, chưa apply (`ec2-iam.tf`).
-  - [ ] `aws_instance` + user_data (Docker), compose, nginx
+  - [x] IAM role `music-ec2-role` + instance profile `music-ec2` (pull ECR) — đã apply (`ec2-iam.tf`).
+  - [x] EC2 `deliver-instance` (`aws_instance.tf`, module ec2-instance, Ubuntu 24.04, `c7i-flex.large`, 20GB gp3, IMDSv2, key `music-ec2` ở `~/.ssh/music-ec2`) — đã apply; user_data cài Docker + compose + aws-cli. Đã kiểm tra pull ECR bằng role. SSH chỉ qua IP private (rule SG nguồn là SG dev box).
+  - [ ] Compose prod (image từ ECR) + nginx container, đưa lên EC2 (tay trước, Ansible sau)
 
 ## Quy ước
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
