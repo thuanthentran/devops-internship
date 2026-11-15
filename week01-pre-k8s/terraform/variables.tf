@@ -47,3 +47,5 @@ variable "devbox_sg_id" {
   type    = string
   default = "sg-0d0ffc9f3028230e3"
 }
+
+variable "domain" { default = "thenttthytlu.io.vn" }

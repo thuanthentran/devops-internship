@@ -43,7 +43,12 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - [x] EC2 `deliver-instance` (`aws_instance.tf`, module ec2-instance, Ubuntu 24.04, `c7i-flex.large`, 20GB gp3, IMDSv2, key `music-ec2` ở `~/.ssh/music-ec2`) — đã apply; user_data cài Docker + compose + aws-cli. Đã kiểm tra pull ECR bằng role. SSH chỉ qua IP private (rule SG nguồn là SG dev box).
   - [x] Compose prod (`docker-compose.prod.yml`, image từ ECR theo digest, `web` publish cổng 80) + Ansible (`week01-pre-k8s/ansible/`: `inventory.ini`, `deploy.yaml`). Deploy: `cd week01-pre-k8s/ansible && ansible-playbook -i inventory.ini deploy.yaml`. Đã chạy, `curl http://<public_ip>/api/artists` OK. IP public đổi khi stop/start; Ansible dùng IP private (`terraform output private_ip`).
 
-- [ ] 5. Route53 + certbot: cần Elastic IP (`aws_eip`), zone subdomain `lab.thenttthytlu.io.vn` ủy quyền NS từ nhà đăng ký, nginx phía trước route theo Host (`app.`/`node.`), certbot HTTP-01.
+- [ ] 5. Route53 + certbot
+  - [x] Elastic IP `aws_eip.this` gắn `deliver-instance` (IP cố định, không đổi khi stop/start).
+  - [x] Hosted zone `lab.thenttthytlu.io.vn` (`route53.tf`, biến `domain`); đã ủy quyền: 4 bản ghi NS `lab` ở nhà đăng ký trỏ về 4 name server của zone (`terraform output name_servers`). `terraform destroy` sẽ làm đổi bộ NS, phải cập nhật lại ở nhà đăng ký.
+  - [x] Bản ghi A `app.lab...` và `node.lab...` trỏ vào EIP (đã kiểm tra bằng `dig`).
+  - [ ] Nginx front proxy (container) route theo Host: `app.` tới `web:8080`, `node.` tới `api:3000`; bỏ `ports` của `web` khỏi compose prod. Config ở `week01-pre-k8s/nginx/conf.d/`.
+  - [ ] Certbot (webroot, container): giai đoạn 1 chỉ HTTP + `/.well-known/acme-challenge/`, cấp chứng chỉ (thử `--staging` trước), giai đoạn 2 thêm 443 + redirect 80 sang 443; gia hạn tự động (cron/timer) qua Ansible.
 
 ## Quy ước
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.

@@ -58,3 +58,8 @@ module "ec2_instance" {
     Environment = "dev"
   }
 }
+
+resource "aws_eip" "this" {
+  instance = module.ec2_instance.id
+  domain   = "vpc"
+}

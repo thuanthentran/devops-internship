@@ -10,10 +10,15 @@ output "repository_arns" {
 
 output "public_ip" {
   description = "Public IP of EC2 instance"
-  value       = module.ec2_instance.public_ip
+  value       = aws_eip.this.public_ip
 }
 
 output "private_ip" {
   description = "Private IP of EC2 instance"
   value       = module.ec2_instance.private_ip
+}
+
+output "name_servers" {
+  description = "Name server của zone Route53"
+  value       = aws_route53_zone.prod.name_servers
 }
