@@ -1,0 +1,80 @@
+# CI chính: chỉ build những service có thay đổi.
+#  - Pull request vào main: build để kiểm tra (không chạm AWS).
+#  - Push vào main (sau khi merge): build rồi push image lên ECR.
+# Sửa Terraform, Ansible, tài liệu... không kích hoạt build nào.
+name: ci
+run-name: CI (${{ github.event_name }}) ${{ github.ref_name }}
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# PR mới đẩy lên thì huỷ lần chạy cũ của PR đó. Không huỷ khi push main (tránh bỏ dở lúc push ECR).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # 1. Xác định service nào có file đổi.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      apps: ${{ steps.filter.outputs.changes }} # ví dụ: ["api","java"] hoặc []
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          # Mỗi khoá = tên service. Sửa chính các workflow này cũng build lại tất cả,
+          # để kiểm chứng thay đổi của pipeline.
+          filters: |
+            api:
+              - 'week01-pre-k8s/apps/api/**'
+              - '.github/workflows/ci.yaml'
+              - '.github/workflows/build-image.yaml'
+            web:
+              - 'week01-pre-k8s/apps/web/**'
+              - '.github/workflows/ci.yaml'
+              - '.github/workflows/build-image.yaml'
+            java:
+              - 'week01-pre-k8s/apps/java/**'
+              - '.github/workflows/ci.yaml'
+              - '.github/workflows/build-image.yaml'
+
+  # 2. Mỗi service đổi gọi workflow tái sử dụng một lần (matrix).
+  build:
+    needs: changes
+    if: needs.changes.outputs.apps != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.changes.outputs.apps) }}
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      app: ${{ matrix.app }}
+      push: ${{ github.event_name == 'push' }}
+
+  # 3. Cổng duy nhất để đặt "required status check" trong ruleset.
+  #    Luôn chạy và luôn có kết quả, kể cả khi không service nào đổi (build bị bỏ qua).
+  #    Nếu đặt thẳng các job build làm check bắt buộc, PR chỉ sửa Terraform sẽ kẹt "pending".
+  ci-ok:
+    if: always()
+    needs: [changes, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report
+        run: echo "changes=${{ needs.changes.result }} build=${{ needs.build.result }}"
+      - name: Fail if any job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
