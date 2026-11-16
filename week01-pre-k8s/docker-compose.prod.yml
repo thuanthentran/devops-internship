@@ -32,10 +32,36 @@ services:
   web:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web@sha256:eab1aabc03821b7eb6d4810850bc128418c19224c11b7cdce5538b862c7390a4
     restart: unless-stopped
-    ports:
-    - "80:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       api:
         condition: service_healthy
+  nginx:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-www:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-www:/var/www/certbot:rw
+      - letsencrypt:/etc/letsencrypt:rw
+    profiles: ["tools"]
 volumes:
   postgres_data:
+  certbot-www:
+  letsencrypt:

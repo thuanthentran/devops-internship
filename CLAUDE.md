@@ -41,14 +41,17 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - [x] Security group `music-web` (80/443 public, SSH chỉ từ SG dev box) — đã apply.
   - [x] IAM role `music-ec2-role` + instance profile `music-ec2` (pull ECR) — đã apply (`ec2-iam.tf`).
   - [x] EC2 `deliver-instance` (`aws_instance.tf`, module ec2-instance, Ubuntu 24.04, `c7i-flex.large`, 20GB gp3, IMDSv2, key `music-ec2` ở `~/.ssh/music-ec2`) — đã apply; user_data cài Docker + compose + aws-cli. Đã kiểm tra pull ECR bằng role. SSH chỉ qua IP private (rule SG nguồn là SG dev box).
-  - [x] Compose prod (`docker-compose.prod.yml`, image từ ECR theo digest, `web` publish cổng 80) + Ansible (`week01-pre-k8s/ansible/`: `inventory.ini`, `deploy.yaml`). Deploy: `cd week01-pre-k8s/ansible && ansible-playbook -i inventory.ini deploy.yaml`. Đã chạy, `curl http://<public_ip>/api/artists` OK. IP public đổi khi stop/start; Ansible dùng IP private (`terraform output private_ip`).
+  - [x] Compose prod (`docker-compose.prod.yml`, image từ ECR theo digest; cổng 80/443 do nginx publish, xem bước 5) + Ansible (`week01-pre-k8s/ansible/`: `inventory.ini`, `deploy.yaml`). Deploy: `cd week01-pre-k8s/ansible && ansible-playbook -i inventory.ini deploy.yaml`. Đã chạy, `curl http://<public_ip>/api/artists` OK. IP public đổi khi stop/start; Ansible dùng IP private (`terraform output private_ip`).
 
-- [ ] 5. Route53 + certbot
+- [x] 5. Route53 + certbot
   - [x] Elastic IP `aws_eip.this` gắn `deliver-instance` (IP cố định, không đổi khi stop/start).
   - [x] Hosted zone `lab.thenttthytlu.io.vn` (`route53.tf`, biến `domain`); đã ủy quyền: 4 bản ghi NS `lab` ở nhà đăng ký trỏ về 4 name server của zone (`terraform output name_servers`). `terraform destroy` sẽ làm đổi bộ NS, phải cập nhật lại ở nhà đăng ký.
   - [x] Bản ghi A `app.lab...` và `node.lab...` trỏ vào EIP (đã kiểm tra bằng `dig`).
-  - [ ] Nginx front proxy (container) route theo Host: `app.` tới `web:8080`, `node.` tới `api:3000`; bỏ `ports` của `web` khỏi compose prod. Config ở `week01-pre-k8s/nginx/conf.d/`.
-  - [ ] Certbot (webroot, container): giai đoạn 1 chỉ HTTP + `/.well-known/acme-challenge/`, cấp chứng chỉ (thử `--staging` trước), giai đoạn 2 thêm 443 + redirect 80 sang 443; gia hạn tự động (cron/timer) qua Ansible.
+  - [x] Nginx front proxy (container `nginx:1.28-alpine`, `week01-pre-k8s/nginx/conf.d/default.conf`) route theo Host: `app.` tới `web:8080`, `node.` tới `api:3000`. Chỉ nginx publish 80/443; `web` đã bỏ `ports`. `web` cần healthcheck dùng `127.0.0.1` (không dùng `localhost`: Alpine phân giải ra IPv6 `::1` mà nginx chỉ nghe IPv4).
+  - [x] Certbot (container, `profiles: ["tools"]`, webroot): đã cấp chứng chỉ thật Let's Encrypt cho `app.` và `node.` (một chứng chỉ chung, file ở `/etc/letsencrypt/live/app.lab.thenttthytlu.io.vn/`, hết hạn 2027-02-14). Nginx có 443 + redirect 301 từ 80; `/.well-known/` giữ ở khối cổng 80. Chạy certbot trên EC2 trong `/home/ubuntu/music` (`docker compose run --rm -T certbot ...`), không chạy trên dev box.
+  - [x] Gia hạn: cron của user `ubuntu` (03:17 hằng ngày) chạy `certbot renew` rồi `nginx -s reload`, cài qua Ansible; handler `Reload nginx` chạy khi config nginx đổi. Đã thử `renew --dry-run` thành công (certbot tự chờ ngẫu nhiên vài phút khi không có TTY; thêm `--no-random-sleep-on-renew` khi chạy tay).
+
+- [ ] 6. Thêm ngôn ngữ / DB phụ (python, go, php, spring, quarkus, rails; MySQL, MongoDB, Redis, DynamoDB)
 
 ## Quy ước
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
