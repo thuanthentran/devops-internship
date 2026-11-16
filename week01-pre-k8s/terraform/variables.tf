@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "repositories" {
   description = "Tên các repo ECR cần tạo (mỗi service một repo)"
   type        = set(string)
-  default     = ["music-api", "music-web"]
+  default     = ["music-api", "music-web", "music-java"]
 }
 
 variable "keep_images" {

@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    build: 
+    build:
       context: ./apps/api
     restart: unless-stopped
     environment:
@@ -30,12 +30,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  java:
+    build:
+      context: ./apps/java
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/actuator/health"]
+      start_period: 40s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   web:
     build:
       context: ./apps/web
     restart: unless-stopped
     ports:
-    - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       api:
         condition: service_healthy

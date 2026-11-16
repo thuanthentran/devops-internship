@@ -51,7 +51,14 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - [x] Certbot (container, `profiles: ["tools"]`, webroot): đã cấp chứng chỉ thật Let's Encrypt cho `app.` và `node.` (một chứng chỉ chung, file ở `/etc/letsencrypt/live/app.lab.thenttthytlu.io.vn/`, hết hạn 2027-02-14). Nginx có 443 + redirect 301 từ 80; `/.well-known/` giữ ở khối cổng 80. Chạy certbot trên EC2 trong `/home/ubuntu/music` (`docker compose run --rm -T certbot ...`), không chạy trên dev box.
   - [x] Gia hạn: cron của user `ubuntu` (03:17 hằng ngày) chạy `certbot renew` rồi `nginx -s reload`, cài qua Ansible; handler `Reload nginx` chạy khi config nginx đổi. Đã thử `renew --dry-run` thành công (certbot tự chờ ngẫu nhiên vài phút khi không có TTY; thêm `--no-random-sleep-on-renew` khi chạy tay).
 
-- [ ] 6. Thêm ngôn ngữ / DB phụ (python, go, php, spring, quarkus, rails; MySQL, MongoDB, Redis, DynamoDB)
+- [ ] 6. Microservices polyglot: 1 frontend gọi nhiều backend cùng lúc, hiển thị theo từng góc màn hình (làm theo từng lát, mỗi service đi hết: app, ECR repo, CI matrix, compose prod, nginx, deploy)
+  - Thiết kế: mỗi backend một chức năng riêng (không phải bản sao của Node). Frontend gọi **một origin**, nginx rẽ theo đường dẫn `/api/node/`, `/api/java/`, `/api/rust/` (bỏ prefix bằng `proxy_pass http://svc:port/;`), không cần CORS và không cần subdomain/cert mới. Giống Ingress path routing ở K8s.
+  - Bộ tối thiểu: Node (danh mục, đã có) + **Spring Boot** (playlist, đọc) + **Rust** (lịch sử nghe, **ghi** `POST /listens`, Redis đếm lượt) + Postgres + Redis. Python/Go bỏ (người dùng đã biết). Rails/PHP/Quarkus/MongoDB/DynamoDB là bonus.
+  - Thứ tự: Java trước (nặng nhất, đo RAM bằng `docker stats`, đặt `mem_limit` + `MaxRAMPercentage`), rồi Rust + Redis, cuối cùng sửa frontend (các khung) và nginx.
+  - Java/Rust build bằng GitHub Actions (dev box 2GB không build được). EC2 `c7i-flex.large` 4GB, còn RAM trống đáng kể trước khi sang RKE2.
+  - [ ] Java (Spring Boot, `apps/java`)
+  - [ ] Rust + Redis (`apps/rust`)
+  - [ ] Frontend nhiều khung + nginx path routing
 
 ## Quy ước
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
