@@ -76,3 +76,6 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 - Không commit secret, `*.tfstate`, `.env` (đã có `.gitignore`). Dùng `.env.example`.
 - Report hằng ngày cho mentor: 3 mục Done / Next / Issues, vài gạch đầu dòng ngắn.
 - Cách làm việc: người dùng tự viết file, Claude review/giải thích; chỉ sửa hộ khi được yêu cầu. Không commit/push/`terraform apply`/stop-start instance khi chưa được đồng ý. Commit/PR không kèm Co-Authored-By hay "Generated with Claude Code".
+
+
+[trigger ci build]
