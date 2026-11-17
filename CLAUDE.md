@@ -36,7 +36,18 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 - [x] 3. Terraform OIDC + ECR + workflow build-push-ecr
   - [x] ECR repos `music-api`, `music-web` (`week01-pre-k8s/terraform`, tag IMMUTABLE, giữ 10 image, đã apply và push thử `music-api:v1`). State local, `terraform.tfstate` không commit.
   - [x] OIDC provider + role `github-actions-ecr` (đã apply; chỉ nhánh `main` và `week01/*` của repo này được assume; role chỉ có quyền push vào 2 repo ECR). Terraform chia file: `providers.tf`, `ecr.tf`, `github-oidc.tf`.
-  - [x] Workflow `.github/workflows/github-action.yaml` (matrix api/web, OIDC, push ECR tag = commit SHA; đã chạy xanh). Lưu ý: claim `sub` của GitHub có ID bất biến (`repo:owner@id/repo@id:ref:...`), xem `github_subjects`.
+  - [x] Workflow ban đầu `github-action.yaml` đã được thay bằng CI mới (xem mục "CI" bên dưới). Lưu ý: claim `sub` của GitHub có ID bất biến (`repo:owner@id/repo@id:ref:...`), xem `github_subjects`. PR không assume được role (sub của PR khác), nên PR chỉ build, không chạm AWS.
+
+### CI (GitHub Actions) và bảo vệ nhánh `main`
+- `.github/workflows/ci.yaml` (chạy khi `pull_request` và `push` vào `main`), 3 job:
+  - `changes`: `dorny/paths-filter@v4` xuất mảng JSON các service đổi (`apps/api|web|java/**`; sửa 2 file workflow thì build lại tất cả). Sửa Terraform/Ansible/tài liệu thì mảng rỗng, không build.
+  - `build`: matrix từ mảng trên, gọi workflow tái sử dụng `build-image.yaml` với `push: ${{ github.event_name == 'push' }}`. Bị skip khi không service nào đổi.
+  - `ci-ok`: `if: always()`, fail nếu có job `failure`/`cancelled`. Đây là **required check duy nhất** (đặt thẳng job build làm required sẽ làm PR chỉ sửa Terraform kẹt "pending").
+- `.github/workflows/build-image.yaml` (`workflow_call`, input `app`, `push`): luôn `docker build`; chỉ khi `push && ref == main` mới OIDC assume `github-actions-ecr`, login ECR, push `music-<app>:<commit SHA>`.
+- `concurrency` chỉ huỷ lần chạy cũ với `pull_request`. Không dùng `[skip ci]` trên nhánh PR (check bắt buộc sẽ kẹt pending).
+- Ruleset `ci-checkin` (mặc định = `main`): cần PR, approvals = 0 (repo một người), required check `ci-ok`, block force push, restrict deletions, require code scanning results (CodeQL, High+). "Require code quality results" để tắt cho tới khi bật Code Quality.
+- CodeQL default setup: GitHub Actions + Java/Kotlin + JavaScript/TypeScript, chạy khi push/PR vào `main` và hằng tuần. Là check riêng, không nằm trong `ci-ok`.
+- ECR hiện có 3 repo: `music-api`, `music-web`, `music-java` (`var.repositories` trong `terraform/variables.tf`; policy IAM tự theo `for_each`). Merge PR #1 (`f67510c`) đã push 3 image tag `f67510c...`.
 - [x] 4. Terraform EC2 + deploy (nginx front proxy làm ở bước 5 cùng certbot) (`c7i-flex.large`; domain đã có)
   - [x] Security group `music-web` (80/443 public, SSH chỉ từ SG dev box) — đã apply.
   - [x] IAM role `music-ec2-role` + instance profile `music-ec2` (pull ECR) — đã apply (`ec2-iam.tf`).
@@ -56,7 +67,7 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - Bộ tối thiểu: Node (danh mục, đã có) + **Spring Boot** (playlist, đọc) + **Rust** (lịch sử nghe, **ghi** `POST /listens`, Redis đếm lượt) + Postgres + Redis. Python/Go bỏ (người dùng đã biết). Rails/PHP/Quarkus/MongoDB/DynamoDB là bonus.
   - Thứ tự: Java trước (nặng nhất, đo RAM bằng `docker stats`, đặt `mem_limit` + `MaxRAMPercentage`), rồi Rust + Redis, cuối cùng sửa frontend (các khung) và nginx.
   - Java/Rust build bằng GitHub Actions (dev box 2GB không build được). EC2 `c7i-flex.large` 4GB, còn RAM trống đáng kể trước khi sang RKE2.
-  - [ ] Java (Spring Boot, `apps/java`)
+  - [ ] Java (Spring Boot 4.1, Java 21, Maven, `apps/java`, cổng 8080): đã xong code (`PlaylistController`: `GET /playlists`, `GET /playlists/{id}`), Dockerfile (multi-stage, user `spring`, `-DskipTests`), service `java` trong compose dev (`mem_limit: 512m`, healthcheck `/actuator/health`), repo ECR `music-java`, CI. **Chưa chạy thử thật.** Còn lại: service `java` trong `docker-compose.prod.yml` (image theo digest, `mem_limit`, healthcheck `127.0.0.1`, `start_period`), `location /api/java/` trong nginx, deploy bằng Ansible, `curl .../api/java/playlists`, đo RAM bằng `docker stats`.
   - [ ] Rust + Redis (`apps/rust`)
   - [ ] Frontend nhiều khung + nginx path routing
 
@@ -64,3 +75,7 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
 - Không commit secret, `*.tfstate`, `.env` (đã có `.gitignore`). Dùng `.env.example`.
 - Report hằng ngày cho mentor: 3 mục Done / Next / Issues, vài gạch đầu dòng ngắn.
+- Cách làm việc: người dùng tự viết file, Claude review/giải thích; chỉ sửa hộ khi được yêu cầu. Không commit/push/`terraform apply`/stop-start instance khi chưa được đồng ý. Commit/PR không kèm Co-Authored-By hay "Generated with Claude Code".
+
+
+[trigger ci build]
