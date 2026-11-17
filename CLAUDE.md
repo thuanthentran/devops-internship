@@ -67,7 +67,11 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - Bộ tối thiểu: Node (danh mục, đã có) + **Spring Boot** (playlist, đọc) + **Rust** (lịch sử nghe, **ghi** `POST /listens`, Redis đếm lượt) + Postgres + Redis. Python/Go bỏ (người dùng đã biết). Rails/PHP/Quarkus/MongoDB/DynamoDB là bonus.
   - Thứ tự: Java trước (nặng nhất, đo RAM bằng `docker stats`, đặt `mem_limit` + `MaxRAMPercentage`), rồi Rust + Redis, cuối cùng sửa frontend (các khung) và nginx.
   - Java/Rust build bằng GitHub Actions (dev box 2GB không build được). EC2 `c7i-flex.large` 4GB, còn RAM trống đáng kể trước khi sang RKE2.
-  - [ ] Java (Spring Boot 4.1, Java 21, Maven, `apps/java`, cổng 8080): đã xong code (`PlaylistController`: `GET /playlists`, `GET /playlists/{id}`), Dockerfile (multi-stage, user `spring`, `-DskipTests`), service `java` trong compose dev (`mem_limit: 512m`, healthcheck `/actuator/health`), repo ECR `music-java`, CI. **Chưa chạy thử thật.** Còn lại: service `java` trong `docker-compose.prod.yml` (image theo digest, `mem_limit`, healthcheck `127.0.0.1`, `start_period`), `location /api/java/` trong nginx, deploy bằng Ansible, `curl .../api/java/playlists`, đo RAM bằng `docker stats`.
+  - [x] Java (Spring Boot 4.1, Java 21, Maven, `apps/java`, cổng 8080): `PlaylistController` (`GET /playlists`, `GET /playlists/{id}`, 404 bằng `ResponseStatusException`), Dockerfile multi-stage (user `spring`, `-DskipTests`, `MaxRAMPercentage=70`), repo ECR `music-java`, CI build/push theo service. Đã thử trên dev box (kéo image ECR, `docker run` nối mạng compose: health UP, 404 đúng) rồi deploy lên EC2.
+    - Prod: service `java` trong `docker-compose.prod.yml` (image theo digest `sha256:235cf1db…` = tag `a319dbb…`, `mem_limit: 512m`, healthcheck `127.0.0.1:8080/actuator/health` `start_period: 30s`, không `ports`; `nginx` `depends_on` java healthy). Nginx `location /api/java/ { proxy_pass http://java:8080/; }` trong khối 443 của `app.` (dấu `/` cuối bỏ prefix; thắng `location /` nhờ khớp tiền tố dài nhất). Không cần server/subdomain mới.
+    - Kiểm tra: `https://app.lab.../api/java/playlists` và `/api/playlists` (Node) trả cùng 3 playlist. RAM trên EC2: Java ~136MiB, Node ~89MiB, Postgres ~69MiB, nginx ~12MiB, web ~10MiB (tổng ~317MiB / 3,7GiB).
+    - Frontend vẫn gọi `/api/playlists` (Node); chỉ đổi sang `/api/java/...` khi làm lát "Frontend nhiều khung".
+    - Còn sót: dòng comment `//trigger ci builds` cuối `PlaylistController.java` (dùng để thử CI, xoá thì sẽ kích hoạt build Java).
   - [ ] Rust + Redis (`apps/rust`)
   - [ ] Frontend nhiều khung + nginx path routing
 
@@ -76,6 +80,4 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 - Không commit secret, `*.tfstate`, `.env` (đã có `.gitignore`). Dùng `.env.example`.
 - Report hằng ngày cho mentor: 3 mục Done / Next / Issues, vài gạch đầu dòng ngắn.
 - Cách làm việc: người dùng tự viết file, Claude review/giải thích; chỉ sửa hộ khi được yêu cầu. Không commit/push/`terraform apply`/stop-start instance khi chưa được đồng ý. Commit/PR không kèm Co-Authored-By hay "Generated with Claude Code".
-
-
-[trigger ci build]
+- Nhánh làm việc mới tạo từ `main` mới nhất sau mỗi PR được merge (nhánh `week01/node-api-react` đã dùng xong). Chỉ phần `apps/<app>/**` đổi mới kích hoạt build; nhớ stop EC2 khi không dùng.

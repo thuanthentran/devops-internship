@@ -18,7 +18,7 @@ public class PlaylistController {
         this.jdbc = jdbc;
     }
 
-    @GetMapping("/playlists")
+    @GetMapping("/api/playlists")
     public List<Map<String, Object>> list() {
         return jdbc.queryForList("""
             SELECT p.id, p.name, p.description, count(ps.song_id)::int AS song_count
@@ -28,7 +28,7 @@ public class PlaylistController {
             """);
     }
 
-    @GetMapping("/playlists/{id}")
+    @GetMapping("/api/playlists/{id}")
     public Map<String, Object> detail(@PathVariable int id) {
         List<Map<String, Object>> found = jdbc.queryForList(
             "SELECT id, name, description FROM playlists WHERE id = ?", id);
