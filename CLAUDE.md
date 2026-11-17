@@ -64,3 +64,5 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
 - Không commit secret, `*.tfstate`, `.env` (đã có `.gitignore`). Dùng `.env.example`.
 - Report hằng ngày cho mentor: 3 mục Done / Next / Issues, vài gạch đầu dòng ngắn.
+
+[trigger codeql]
