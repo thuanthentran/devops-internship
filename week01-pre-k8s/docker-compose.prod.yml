@@ -29,6 +29,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  java:
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-java@sha256:235cf1db3b226ea58873ac5ba15862b00729f4f047a7858539e87d3a4292940c
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/actuator/health"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 5
   web:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web@sha256:eab1aabc03821b7eb6d4810850bc128418c19224c11b7cdce5538b862c7390a4
     restart: unless-stopped
@@ -54,6 +71,8 @@ services:
       web:
         condition: service_healthy
       api:
+        condition: service_healthy
+      java:
         condition: service_healthy
   certbot:
     image: certbot/certbot
