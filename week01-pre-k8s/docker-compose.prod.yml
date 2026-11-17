@@ -14,6 +14,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    mem_limit: 64m
+    command:
+      [
+        "redis-server",
+        "--maxmemory",
+        "48mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+        "--save",
+        "",
+      ]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   api:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-api@sha256:4c2372966fe7221a315df7a8a34ebe1ab45dee834826c8f3ddef89f0312368ee
     restart: unless-stopped
@@ -46,6 +65,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  rust:
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-rust@sha256:483594c678ddc8af66a0946ebf7d2b9a63619b2e26fbd2426125eb050ce9ae39
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      start_period: 10s
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   web:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web@sha256:eab1aabc03821b7eb6d4810850bc128418c19224c11b7cdce5538b862c7390a4
     restart: unless-stopped
@@ -73,6 +111,8 @@ services:
       api:
         condition: service_healthy
       java:
+        condition: service_healthy
+      rust:
         condition: service_healthy
   certbot:
     image: certbot/certbot

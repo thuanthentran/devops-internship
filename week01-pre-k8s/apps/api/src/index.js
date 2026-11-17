@@ -21,13 +21,6 @@ const wrap = (fn) => (req, res) =>
     res.status(500).json({ error: 'internal error' });
   });
 
-const SONG_SELECT = `
-  SELECT s.id, s.title, s.release_year, s.duration_sec, s.spotify_url, s.apple_music_url,
-         a.id AS artist_id, a.name AS artist, g.name AS genre
-  FROM songs s
-  JOIN artists a ON a.id = s.artist_id
-  LEFT JOIN genres g ON g.id = s.genre_id`;
-
 app.get('/health', wrap(async (_req, res) => {
   await pool.query('SELECT 1');
   res.json({ status: 'ok' });
@@ -40,11 +33,6 @@ app.get('/api/artists', wrap(async (_req, res) => {
 
 app.get('/api/genres', wrap(async (_req, res) => {
   const { rows } = await pool.query('SELECT * FROM genres ORDER BY name');
-  res.json(rows);
-}));
-
-app.get('/api/songs', wrap(async (_req, res) => {
-  const { rows } = await pool.query(`${SONG_SELECT} ORDER BY a.name, s.title`);
   res.json(rows);
 }));
 
