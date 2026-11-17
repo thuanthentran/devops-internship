@@ -30,7 +30,7 @@ services:
       timeout: 5s
       retries: 5
   java:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-java@sha256:235cf1db3b226ea58873ac5ba15862b00729f4f047a7858539e87d3a4292940c
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-java@sha256:1ecb706b285204d0e6174c52add9e79bbb623ccbaa7bdfa0a431df9396f282d1
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}

@@ -48,25 +48,6 @@ app.get('/api/songs', wrap(async (_req, res) => {
   res.json(rows);
 }));
 
-app.get('/api/playlists', wrap(async (_req, res) => {
-  const { rows } = await pool.query(`
-    SELECT p.id, p.name, p.description, count(ps.song_id)::int AS song_count
-    FROM playlists p
-    LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
-    GROUP BY p.id ORDER BY p.id`);
-  res.json(rows);
-}));
-
-app.get('/api/playlists/:id', wrap(async (req, res) => {
-  const id = Number.parseInt(req.params.id, 10);
-  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid id' });
-  const pl = await pool.query('SELECT id, name, description FROM playlists WHERE id = $1', [id]);
-  if (pl.rowCount === 0) return res.status(404).json({ error: 'not found' });
-  const songs = await pool.query(
-    `${SONG_SELECT} JOIN playlist_songs ps ON ps.song_id = s.id
-     WHERE ps.playlist_id = $1 ORDER BY ps.position`, [id]);
-  res.json({ ...pl.rows[0], songs: songs.rows });
-}));
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, () => console.log(`API listening on :${port}`));
