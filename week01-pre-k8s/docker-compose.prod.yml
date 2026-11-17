@@ -34,7 +34,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-api@sha256:03bc5f77340d3ee4b005fea3a0e7bbe7f4625fde7a7d37fbf39be47acb9d8c90
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-api@sha256:0833b4d53fc96b70dcd010278666ef740b57fe446c45406e2e557e8f178771c4
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -68,6 +68,7 @@ services:
   rust:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-rust@sha256:483594c678ddc8af66a0946ebf7d2b9a63619b2e26fbd2426125eb050ce9ae39
     restart: unless-stopped
+    mem_limit: 64m
     environment:
       REDIS_URL: redis://redis:6379
       POSTGRES_USER: ${POSTGRES_USER}
