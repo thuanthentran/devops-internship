@@ -96,6 +96,30 @@ services:
       timeout: 5s
       retries: 5
     <<: *logging
+  python:
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-python@
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 128m
+    healthcheck:
+      start_period: 10s
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    <<: *logging
   web:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web@sha256:eab1aabc03821b7eb6d4810850bc128418c19224c11b7cdce5538b862c7390a4
     restart: unless-stopped
@@ -126,6 +150,8 @@ services:
       java:
         condition: service_healthy
       rust:
+        condition: service_healthy
+      python:
         condition: service_healthy
     <<: *logging
   certbot:
