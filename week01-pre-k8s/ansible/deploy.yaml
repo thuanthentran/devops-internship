@@ -38,12 +38,12 @@
       ansible.builtin.file:
         path: /home/ubuntu/music/scripts
         state: directory
-        mode: "0755"
+        mode: "0750"
     - name: Copy nginx-stats.sh script to remote server
       ansible.builtin.copy:
         src: /home/ubuntu/devops-internship/week01-pre-k8s/scripts/nginx-stats.sh
         dest: /home/ubuntu/music/scripts/nginx-stats.sh
-        mode: "0755"
+        mode: "0750"
     - name: Schedule cert renewal
       ansible.builtin.cron:
         name: certbot renewal
