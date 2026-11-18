@@ -39,6 +39,16 @@
         path: /home/ubuntu/music/scripts
         state: directory
         mode: "0750"
+    - name: Make directory for backup
+      ansible.builtin.file:
+        path: /home/ubuntu/backups
+        state: directory
+        mode: "0700"
+    - name: Copy postgres-backup.sh script to remote server
+      ansible.builtin.copy:
+        src: /home/ubuntu/devops-internship/week01-pre-k8s/scripts/postgres-backup.sh
+        dest: /home/ubuntu/music/scripts/postgres-backup.sh
+        mode: "0750"
     - name: Copy nginx-stats.sh script to remote server
       ansible.builtin.copy:
         src: /home/ubuntu/devops-internship/week01-pre-k8s/scripts/nginx-stats.sh
@@ -56,6 +66,12 @@
         minute: "5"
         hour: "0"
         job: "/home/ubuntu/music/scripts/nginx-stats.sh"
+    - name: Schedule postgres-backup.sh script
+      ansible.builtin.cron:
+        name: Postgres backup
+        minute: "6"
+        hour: "0"
+        job: "/home/ubuntu/music/scripts/postgres-backup.sh"
   handlers:
     - name: Reload nginx
       ansible.builtin.command: docker compose exec -T nginx nginx -s reload

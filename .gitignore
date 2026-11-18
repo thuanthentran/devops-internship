@@ -11,3 +11,7 @@ node_modules/
 
 # Thùng rác của IDE (freedesktop trash)
 .Trash-*/
+
+# Terraform plan files (có thể chứa giá trị nhạy cảm)
+tfplan
+*.tfplan
