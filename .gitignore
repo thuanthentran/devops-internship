@@ -15,3 +15,4 @@ node_modules/
 # Terraform plan files (có thể chứa giá trị nhạy cảm)
 tfplan
 *.tfplan
+__pycache__/
