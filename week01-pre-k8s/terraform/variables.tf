@@ -49,3 +49,8 @@ variable "devbox_sg_id" {
 }
 
 variable "domain" { default = "thenttthytlu.io.vn" }
+
+variable "backup_bucket" {
+  type    = string
+  default = "music-backup-bucket-380085"
+}

@@ -28,6 +28,18 @@ data "aws_iam_policy_document" "permission" {
       for r in aws_ecr_repository.this : r.arn
     ]
   }
+  statement {
+    actions = [
+      "s3:PutObject"
+    ]
+    resources = ["${aws_s3_bucket.music_backup_bucket.arn}/postgres/*"]
+  }
+  statement {
+    actions = [
+      "s3:ListBucket"
+    ]
+    resources = [aws_s3_bucket.music_backup_bucket.arn]
+  }
 }
 
 resource "aws_iam_role_policy" "ec2" {
