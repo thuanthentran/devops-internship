@@ -1,3 +1,9 @@
+x-logging: &logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: 10m
+      max-file: "5"
 services:
   postgres:
     image: postgres:18-alpine
@@ -14,6 +20,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    <<: *logging
   redis:
     image: redis:8-alpine
     restart: unless-stopped
@@ -33,8 +40,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    <<: *logging
   api:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-api@sha256:4c2372966fe7221a315df7a8a34ebe1ab45dee834826c8f3ddef89f0312368ee
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-api@sha256:0833b4d53fc96b70dcd010278666ef740b57fe446c45406e2e557e8f178771c4
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -48,6 +56,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    <<: *logging
   java:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-java@sha256:1ecb706b285204d0e6174c52add9e79bbb623ccbaa7bdfa0a431df9396f282d1
     restart: unless-stopped
@@ -65,9 +74,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    <<: *logging
   rust:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-rust@sha256:483594c678ddc8af66a0946ebf7d2b9a63619b2e26fbd2426125eb050ce9ae39
     restart: unless-stopped
+    mem_limit: 64m
     environment:
       REDIS_URL: redis://redis:6379
       POSTGRES_USER: ${POSTGRES_USER}
@@ -84,6 +95,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    <<: *logging
   web:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web@sha256:eab1aabc03821b7eb6d4810850bc128418c19224c11b7cdce5538b862c7390a4
     restart: unless-stopped
@@ -95,6 +107,7 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    <<: *logging
   nginx:
     image: nginx:1.28-alpine
     restart: unless-stopped
@@ -114,6 +127,7 @@ services:
         condition: service_healthy
       rust:
         condition: service_healthy
+    <<: *logging
   certbot:
     image: certbot/certbot
     volumes:
