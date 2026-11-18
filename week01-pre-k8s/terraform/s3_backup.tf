@@ -53,3 +53,31 @@ resource "aws_s3_bucket_lifecycle_configuration" "music_lifecycle" {
 
   depends_on = [aws_s3_bucket_versioning.music_versioning]
 }
+
+data "aws_iam_policy_document" "backup" {
+  statement {
+    effect = "Deny"
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.music_backup_bucket.arn,
+      "${aws_s3_bucket.music_backup_bucket.arn}/*"
+    ]
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "music-policy" {
+  bucket = aws_s3_bucket.music_backup_bucket.id
+
+  policy     = data.aws_iam_policy_document.backup.json
+  depends_on = [aws_s3_bucket_public_access_block.music_access_block]
+
+}
