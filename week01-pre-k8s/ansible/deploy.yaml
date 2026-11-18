@@ -34,12 +34,28 @@
         project_src: /home/ubuntu/music
         state: present
         pull: always
+    - name: Make dir for nginx logging script
+      ansible.builtin.file:
+        path: /home/ubuntu/music/scripts
+        state: directory
+        mode: "0755"
+    - name: Copy nginx-stats.sh script to remote server
+      ansible.builtin.copy:
+        src: /home/ubuntu/devops-internship/week01-pre-k8s/scripts/nginx-stats.sh
+        dest: /home/ubuntu/music/scripts/nginx-stats.sh
+        mode: "0755"
     - name: Schedule cert renewal
       ansible.builtin.cron:
         name: certbot renewal
         minute: "17"
         hour: "3"
         job: "cd /home/ubuntu/music && docker compose run --rm -T certbot renew --quiet && docker compose exec -T nginx nginx -s reload"
+    - name: Schedule nginx-stats.sh script
+      ansible.builtin.cron:
+        name: Nginx logging
+        minute: "5"
+        hour: "0"
+        job: "/home/ubuntu/music/scripts/nginx-stats.sh"
   handlers:
     - name: Reload nginx
       ansible.builtin.command: docker compose exec -T nginx nginx -s reload
