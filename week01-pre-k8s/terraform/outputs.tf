@@ -22,3 +22,8 @@ output "name_servers" {
   description = "Name server của zone Route53"
   value       = aws_route53_zone.prod.name_servers
 }
+
+output "rke2_server_private_ip" {
+  description = "Private IP của RKE2 server"
+  value       = module.k8s_instance.private_ip
+}
