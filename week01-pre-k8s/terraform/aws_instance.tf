@@ -4,7 +4,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-20261108"]
   }
 
   filter {
@@ -34,7 +34,7 @@ module "ec2_instance" {
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
   create_security_group  = false
   vpc_security_group_ids = [aws_security_group.web.id]
-  ami                    = data.aws_ami.ubuntu.id
+  ami                    = var.ami_id
   key_name               = aws_key_pair.this.key_name
   root_block_device = {
     size = 20

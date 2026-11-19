@@ -54,3 +54,9 @@ variable "backup_bucket" {
   type    = string
   default = "music-backup-bucket-380085"
 }
+
+variable "ami_id" {
+  description = "AMI Ubuntu 24.04 đã ghim (ubuntu-noble-24.04-amd64-server-20261108)"
+  type        = string
+  default     = "ami-063d94c44d4eba6e0"
+}
