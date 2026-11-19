@@ -33,11 +33,11 @@ module "ec2_instance" {
   instance_type          = var.instance_type
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
   create_security_group  = false
-  vpc_security_group_ids = [aws_security_group.web.id]
+  vpc_security_group_ids = [aws_security_group.web.id, aws_security_group.k8s_nodes.id]
   ami                    = var.ami_id
   key_name               = aws_key_pair.this.key_name
   root_block_device = {
-    size = 20
+    size = 40
     type = "gp3"
   }
   user_data = <<-EOF

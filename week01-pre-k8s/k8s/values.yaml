@@ -1,0 +1,4 @@
+defaultSettings:
+  defaultReplicaCount: 2 # 2 node, replica 2; nâng 3 khi có node thứ ba
+persistence:
+  defaultClassReplicaCount: 2 # StorageClass `longhorn` mặc định cũng dùng 2 replica
