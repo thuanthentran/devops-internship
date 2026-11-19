@@ -45,7 +45,8 @@ data "aws_iam_policy_document" "this" {
       "ecr:InitiateLayerUpload",
       "ecr:UploadLayerPart",
       "ecr:CompleteLayerUpload",
-      "ecr:PutImage"
+      "ecr:PutImage",
+      "ecr:BatchGetImage"
     ]
     resources = [
       for r in aws_ecr_repository.this : r.arn
