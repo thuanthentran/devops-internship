@@ -14,6 +14,8 @@ const pool = new pg.Pool({
 const app = express();
 app.use(cors());
 
+let shuttingDown = false;
+
 // Bọc handler async để lỗi DB trả 500 thay vì làm treo request.
 const wrap = (fn) => (req, res) =>
   fn(req, res).catch((err) => {
@@ -36,6 +38,32 @@ app.get('/api/genres', wrap(async (_req, res) => {
   res.json(rows);
 }));
 
-
 const port = Number(process.env.PORT || 3000);
-app.listen(port, () => console.log(`API listening on :${port}`));
+const server = app.listen(port, () => console.log(`API listening on :${port}`));
+
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  console.log(`${signal} received. Starting graceful shutdown...`);
+  shuttingDown = true;
+  // Stop accepting new connections
+  server.close(async () => {
+    try {
+      await pool.end();
+      console.log('HTTP server closed. All connections drained.');
+      console.log('Cleanup complete. Exiting.');
+      process.exit(0);
+    }
+    catch (err) {
+      console.error('Failed to close pool', err);
+      process.exit(1)
+    }
+  });
+  // Forced exit if drain takes too long
+  setTimeout(() => {
+    console.error('Shutdown timeout. Forcing exit.');
+    process.exit(1);
+  }, 8_000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM')); // Docker/Kubernetes
+process.on('SIGINT', () => shutdown('SIGINT'));   // Ctrl+C
