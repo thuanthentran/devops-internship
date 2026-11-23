@@ -11,7 +11,7 @@ on:
         type: string
         default: ""
       app:
-        description: "Tên service (thư mục dưới week01-pre-k8s/apps/)"
+        description: "Tên service"
         required: true
         type: string
       push:
@@ -40,6 +40,12 @@ jobs:
           else
             echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
           fi
+      - name: Select build context
+        run: |
+          case "${APP}" in
+            postgres) echo "CONTEXT=week01-pre-k8s/db/postgres" >> "$GITHUB_ENV" ;;
+            *)        echo "CONTEXT=week01-pre-k8s/apps/${APP}" >> "$GITHUB_ENV" ;;
+          esac
 
       # Build luôn chạy (PR và main). Tag cục bộ, chưa gắn tên registry.
       - name: Build image
@@ -48,7 +54,7 @@ jobs:
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
             --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            -t "music-${APP}:${TAG}" "week01-pre-k8s/apps/${APP}"
+            -t "music-${APP}:${TAG}" "${CONTEXT}"
 
       - name: Configure AWS credentials
         if: inputs.push && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
