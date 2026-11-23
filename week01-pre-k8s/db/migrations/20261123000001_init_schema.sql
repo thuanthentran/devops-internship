@@ -1,5 +1,4 @@
--- Schema chính cho app sở thích nghe nhạc.
--- File trong /docker-entrypoint-initdb.d chỉ chạy khi volume dữ liệu còn trống (lần khởi tạo đầu).
+-- migrate:up
 
 CREATE TABLE genres (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -50,3 +49,10 @@ CREATE TABLE playlist_songs (
 CREATE INDEX idx_songs_artist_id ON songs(artist_id);
 CREATE INDEX idx_songs_genre_id ON songs(genre_id);
 CREATE INDEX idx_playlist_songs_song_id ON playlist_songs(song_id);
+
+-- migrate:down
+DROP TABLE IF EXISTS playlist_songs;
+DROP TABLE IF EXISTS playlists;
+DROP TABLE IF EXISTS songs;
+DROP TABLE IF EXISTS artists;
+DROP TABLE IF EXISTS genres;
