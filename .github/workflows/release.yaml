@@ -1,0 +1,36 @@
+name: release
+on:
+  push:
+    tags: ["*/v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.p.outputs.app }}
+      version: ${{ steps.p.outputs.version }}
+    steps:
+      - id: p
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          app="${REF_NAME%%/*}"
+          version="${REF_NAME#*/v}"
+          case "$app" in api|web|java|rust|python) ;; *) echo "app không hợp lệ: $app"; exit 1 ;; esac
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "version không hợp lệ: $version"; exit 1; }
+          echo "app=$app" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: parse
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      app: ${{ needs.parse.outputs.app }}
+      version: ${{ needs.parse.outputs.version }}
+      push: true

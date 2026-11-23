@@ -5,6 +5,11 @@ name: build-image
 on:
   workflow_call:
     inputs:
+      version:
+        description: "Semver (không có chữ v); rỗng nếu build thường"
+        required: false
+        type: string
+        default: ""
       app:
         description: "Tên service (thư mục dưới week01-pre-k8s/apps/)"
         required: true
@@ -26,14 +31,27 @@ jobs:
       APP: ${{ inputs.app }}
     steps:
       - uses: actions/checkout@v6
+      - name: Compute tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "${VERSION}" ]; then
+            echo "TAG=${VERSION}" >> "$GITHUB_ENV"
+          else
+            echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          fi
 
       # Build luôn chạy (PR và main). Tag cục bộ, chưa gắn tên registry.
       - name: Build image
-        run: docker build -t "music-${APP}:${GITHUB_SHA}" "week01-pre-k8s/apps/${APP}"
+        run: |
+          docker build \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -t "music-${APP}:${TAG}" "week01-pre-k8s/apps/${APP}"
 
-      # Từ đây trở xuống chỉ chạy khi được yêu cầu push VÀ đang ở nhánh main.
       - name: Configure AWS credentials
-        if: inputs.push && github.ref == 'refs/heads/main'
+        if: inputs.push && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           aws-region: ap-southeast-1
@@ -41,14 +59,14 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: inputs.push && github.ref == 'refs/heads/main'
+        if: inputs.push && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Tag and push to ECR
-        if: inputs.push && github.ref == 'refs/heads/main'
+        if: inputs.push && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          IMAGE="${REGISTRY}/music-${APP}:${GITHUB_SHA}"
-          docker tag "music-${APP}:${GITHUB_SHA}" "${IMAGE}"
+          IMAGE="${REGISTRY}/music-${APP}:${TAG}"
+          docker tag "music-${APP}:${TAG}" "${IMAGE}"
           docker push "${IMAGE}"
