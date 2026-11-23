@@ -43,7 +43,9 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - `changes`: `dorny/paths-filter@v4` xuất mảng JSON các service đổi (`apps/api|web|java|rust|python/**`; sửa 2 file workflow thì build lại tất cả). Sửa Terraform/Ansible/tài liệu thì mảng rỗng, không build.
   - `build`: matrix từ mảng trên, gọi workflow tái sử dụng `build-image.yaml` với `push: ${{ github.event_name == 'push' }}`. Bị skip khi không service nào đổi.
   - `ci-ok`: `if: always()`, fail nếu có job `failure`/`cancelled`. Đây là **required check duy nhất** (đặt thẳng job build làm required sẽ làm PR chỉ sửa Terraform kẹt "pending").
-- `.github/workflows/build-image.yaml` (`workflow_call`, input `app`, `push`): luôn `docker build`; chỉ khi `push && ref == main` mới OIDC assume `github-actions-ecr`, login ECR, push `music-<app>:<commit SHA>`.
+- `.github/workflows/build-image.yaml` (`workflow_call`, input `app`, `push`, `version`): luôn `docker build` kèm nhãn OCI (`revision` = SHA đầy đủ, `source`, `created`); chỉ khi `push` và ref là `main` hoặc tag mới OIDC assume `github-actions-ecr`, login ECR, push `music-<app>:<TAG>`. `TAG` = `version` nếu có, không thì `<sha7>` (7 ký tự đầu của commit). Đọc nhãn: `docker pull` rồi `docker inspect <image> --format '{{ json .Config.Labels }}'` (`aws ecr describe-images` không hiện nhãn).
+- Phát hành bản có số phiên bản (2026-11-23): tag git **theo từng service** `<app>/vX.Y.Z` (vd `python/v0.1.0`) kích hoạt `.github/workflows/release.yaml` (`parse` kiểm `app` thuộc `api|web|java|rust|python` và `X.Y.Z` đúng regex rồi mới gọi `build-image.yaml` với `version`, `push: true`). Image ECR chỉ mang tag `X.Y.Z` (không thêm `sha7`, vì tag IMMUTABLE và build lại ra digest khác). Đánh đổi: release **build lại** từ cùng commit nên digest khác bản `sha7`; khi deploy chọn một bản và ghim digest. Tra digest: `aws ecr describe-images --repository-name music-<app> --image-ids imageTag=<tag> --query 'imageDetails[0].imageDigest' --output text`. Terraform: `github_subjects` có thêm `repo:...:ref:refs/tags/*/v*` (đã apply). Ruleset tag `tagging` (GitHub) cho `*/v*`: restrict updates/deletions, block force push, bypass list trống, không restrict creations; tag đã phát hành không xoá/dời được (muốn sửa phải tạm Disabled ruleset). `release.yaml` chỉ chạy được khi file đã nằm trên commit được tag. Đã thử `python/v0.1.0`: ECR có tag `0.1.0`, `revision` trùng commit.
+- Dockerfile (2026-11-23): api dùng `npm ci --omit=dev` với `package-lock.json` (sửa `package.json` ngoài dependency không làm `npm ci` lỗi; chỉ lệch dependency mới lỗi). Node bắt SIGTERM/SIGINT để tắt êm (`server.close` + `pool.end`, timer 8s `.unref()`; stop 10,3s/exit 137 giảm còn 0,29s/exit 0). Java (Spring Boot) và Python và Postgres vốn đã tắt êm. Rust CI luôn chậm vì runner mới không có cache; sẽ thử `cache-from/cache-to: type=gha` ở PR riêng. Khi viết Deployment K8s cần thêm xử lý SIGTERM/readiness (preStop, /health trả 503).
 - `concurrency` chỉ huỷ lần chạy cũ với `pull_request`. Không dùng `[skip ci]` trên nhánh PR (check bắt buộc sẽ kẹt pending).
 - Ruleset `ci-checkin` (mặc định = `main`): cần PR, approvals = 0 (repo một người), required check `ci-ok`, block force push, restrict deletions, require code scanning results (CodeQL, High+). "Require code quality results" để tắt cho tới khi bật Code Quality.
 - CodeQL default setup: GitHub Actions + Java/Kotlin + JavaScript/TypeScript + Python + Rust (Python/Rust do GitHub tự thêm khi phát hiện trên `main`), query suite Extended; chạy khi push/PR vào `main` và hằng tuần. Là check riêng, không nằm trong `ci-ok`.
@@ -89,6 +91,17 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
   - Lưu ý CI/CodeQL: CodeQL chạy 2 lần mỗi PR (quét PR để thoả ruleset, rồi quét lại `main` sau merge) và là check riêng ngoài `ci-ok`. Default setup không lọc được theo path; có thể giảm thời gian bằng cách đổi query suite Extended sang Default hoặc bỏ bớt ngôn ngữ (giữ Rust vì là service thật). Chưa đổi.
   - Cron backup/stats **chưa xác nhận tự chạy**: EC2 bị stop ban đêm (boot 01:56 UTC ngày 19/11, sau 00:05/00:06 UTC) nên không có `nginx-2026-11-19.txt` hay backup mới; cron certbot 03:17 vẫn chạy được (cron daemon ổn). Cần để EC2 chạy qua 00:05 UTC để kiểm tra, hoặc chạy tay hai script. Trên S3 mới có 1 object (`20261118_071742`): bản `042221` (local) có trước khi script có bước upload.
   - [~] Frontend nhiều khung: **bỏ** (2026-11-18, người dùng chọn giữ kiến trúc hiện tại: mỗi backend độc lập cùng DB, nginx route theo tài nguyên). Tuỳ chọn: thêm một khung "thống kê" gọi `/api/stats`.
+
+## Việc học thêm tuần 1 (todo, thứ tự đã thống nhất)
+- [x] Khảo sát tfstate (5.1–5.3), CMD/ENTRYPOINT + layer (nhóm 2), lockfile, SIGTERM, `.dockerignore`.
+- [x] Nhóm 1: image tag (`sha7`, semver theo service, nhãn OCI, tag ruleset).
+- [ ] 1.3b drift `deliver-instance` (SG `k8s_nodes` + ổ 40GB): code đã sửa cho khớp (commit `a8b6ef6`, `plan` = No changes), chờ merge PR. Nợ nhỏ: kiểm tra lifecycle ECR "giữ 10 image" có đếm manifest không tag (attestation) hay không.
+- [ ] Nhóm 3: Dockerfile Postgres (bake schema/seed) + migration (Flyway/dbmate, expand/contract).
+- [ ] Nhóm 4: Docker networks frontend/backend (`internal: true`).
+- [ ] 5.2/5.4/5.5: drift lab, S3 remote backend `use_lockfile`, thử lock.
+- [ ] Nhóm 6: CD (SSM Run Command qua OIDC, biến digest thay vì sửa compose, approval, rollback).
+- [ ] Nhóm 7: Monitoring (Prometheus/Grafana/exporters/Alertmanager).
+- [ ] PR riêng: 2.4 cache build CI (`type=gha`), 2.6 so sánh kích thước image, bỏ curl khỏi Rust (`--healthcheck`), ghim base image.
 
 ## Quy ước
 - Cấu trúc: `week01-pre-k8s/{apps/<app>,nginx,db,terraform,ansible}`, report ở `reports/YYYY-MM-DD.md`.
