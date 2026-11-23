@@ -33,7 +33,9 @@ variable "github_subjects" {
   type        = list(string)
   default = [
     "repo:thuanthentran@158747017/devops-internship@1451498040:ref:refs/heads/main",
-    "repo:thuanthentran@158747017/devops-internship@1451498040:ref:refs/heads/week01/*"
+    "repo:thuanthentran@158747017/devops-internship@1451498040:ref:refs/heads/week01/*",
+    "repo:thuanthentran@158747017/devops-internship@1451498040:ref:refs/tags/*/v*"
+
   ]
 }
 
