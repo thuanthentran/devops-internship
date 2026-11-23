@@ -40,11 +40,19 @@ jobs:
           else
             echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
           fi
+
+      # postgres cần context rộng hơn (db/) để COPY được migrations + seed.
       - name: Select build context
         run: |
           case "${APP}" in
-            postgres) echo "CONTEXT=week01-pre-k8s/db/postgres" >> "$GITHUB_ENV" ;;
-            *)        echo "CONTEXT=week01-pre-k8s/apps/${APP}" >> "$GITHUB_ENV" ;;
+            postgres)
+              echo "CONTEXT=week01-pre-k8s/db" >> "$GITHUB_ENV"
+              echo "DOCKERFILE=week01-pre-k8s/db/postgres/Dockerfile" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "CONTEXT=week01-pre-k8s/apps/${APP}" >> "$GITHUB_ENV"
+              echo "DOCKERFILE=week01-pre-k8s/apps/${APP}/Dockerfile" >> "$GITHUB_ENV"
+              ;;
           esac
 
       # Build luôn chạy (PR và main). Tag cục bộ, chưa gắn tên registry.
@@ -54,6 +62,7 @@ jobs:
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
             --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -f "${DOCKERFILE}" \
             -t "music-${APP}:${TAG}" "${CONTEXT}"
 
       - name: Configure AWS credentials
