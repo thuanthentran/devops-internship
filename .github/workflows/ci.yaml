@@ -56,6 +56,11 @@ jobs:
               - 'week01-pre-k8s/apps/python/**'
               - '.github/workflows/ci.yaml'
               - '.github/workflows/build-image.yaml'
+            postgres:
+              - 'week01-pre-k8s/db/postgres/**'
+              - '.github/workflows/ci.yaml'
+              - '.github/workflows/build-image.yaml'
+
   # 2. Mỗi service đổi gọi workflow tái sử dụng một lần (matrix).
   build:
     needs: changes
