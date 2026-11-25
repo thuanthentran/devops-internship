@@ -20,6 +20,21 @@ services:
       timeout: 5s
       retries: 5
     <<: *logging
+  # Chạy một lần mỗi lần deploy: áp dụng migration mới rồi thoát. Phải baseline DB prod trước lần chạy đầu tiên.
+  migrate:
+    image: ghcr.io/amacneil/dbmate@sha256:fb4fe7cabfe98cf864d63ce083867f3c303a8c1a022fcd69081439425706e909
+    restart: "no"
+    command: ["up"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      DBMATE_MIGRATIONS_DIR: /db/migrations
+      DBMATE_NO_DUMP_SCHEMA: "true"
+    volumes:
+      - ./db/migrations:/db/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    <<: *logging
   redis:
     image: redis:8-alpine
     restart: unless-stopped
@@ -41,7 +56,7 @@ services:
       retries: 5
     <<: *logging
   api:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-api@sha256:0833b4d53fc96b70dcd010278666ef740b57fe446c45406e2e557e8f178771c4
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-api:1eb83b5
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -50,6 +65,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
       interval: 10s
@@ -57,7 +74,7 @@ services:
       retries: 5
     <<: *logging
   java:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-java@sha256:1ecb706b285204d0e6174c52add9e79bbb623ccbaa7bdfa0a431df9396f282d1
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-java:1eb83b5
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -66,6 +83,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     mem_limit: 512m
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/actuator/health"]
@@ -75,7 +94,7 @@ services:
       retries: 5
     <<: *logging
   rust:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-rust@sha256:483594c678ddc8af66a0946ebf7d2b9a63619b2e26fbd2426125eb050ce9ae39
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-rust:1eb83b5
     restart: unless-stopped
     mem_limit: 64m
     environment:
@@ -86,6 +105,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     healthcheck:
@@ -96,7 +117,7 @@ services:
       retries: 5
     <<: *logging
   python:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-python@sha256:b66463aa219425606438241e1adf744856ad8b9583a30497bec6074eaf9f2960
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-python:1eb83b5
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -105,6 +126,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     mem_limit: 128m
     healthcheck:
       start_period: 10s
@@ -120,7 +143,7 @@ services:
       retries: 5
     <<: *logging
   web:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web@sha256:eab1aabc03821b7eb6d4810850bc128418c19224c11b7cdce5538b862c7390a4
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web:1eb83b5
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
