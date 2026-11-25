@@ -31,7 +31,7 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 6. Thêm ngôn ngữ / DB phụ
 
 ## Tiến độ
-- [x] 1. Schema + seed Postgres (`week01-pre-k8s/db/postgres`, 6 nghệ sĩ/11 bài/3 playlist). Script init chỉ chạy khi volume trống: sửa schema/seed phải `docker compose down -v`.
+- [x] 1. Schema + seed Postgres (`week01-pre-k8s/db/postgres`, 6 nghệ sĩ/11 bài/3 playlist). Từ 2026-11-23 schema do dbmate quản lý (xem "Việc học thêm", nhóm 3); không còn `initdb.d` mount.
 - [x] 2. Node API (`apps/api`, Express + pg, cổng 3000) + React/Vite (`apps/web`, nginx cổng 8080 proxy `/api` sang API), chạy bằng `docker compose up -d --build` trong `week01-pre-k8s/`. Cổng chỉ bind 127.0.0.1.
 - [x] 3. Terraform OIDC + ECR + workflow build-push-ecr
   - [x] ECR repos `music-api`, `music-web` (`week01-pre-k8s/terraform`, tag IMMUTABLE, giữ 10 image, đã apply và push thử `music-api:v1`). State local, `terraform.tfstate` không commit.
@@ -95,8 +95,11 @@ App ghi lại sở thích nghe nhạc (chỉ hiển thị, có link Spotify/Appl
 ## Việc học thêm tuần 1 (todo, thứ tự đã thống nhất)
 - [x] Khảo sát tfstate (5.1–5.3), CMD/ENTRYPOINT + layer (nhóm 2), lockfile, SIGTERM, `.dockerignore`.
 - [x] Nhóm 1: image tag (`sha7`, semver theo service, nhãn OCI, tag ruleset).
-- [ ] 1.3b drift `deliver-instance` (SG `k8s_nodes` + ổ 40GB): code đã sửa cho khớp (commit `a8b6ef6`, `plan` = No changes), chờ merge PR. Nợ nhỏ: kiểm tra lifecycle ECR "giữ 10 image" có đếm manifest không tag (attestation) hay không.
-- [ ] Nhóm 3: Dockerfile Postgres (bake schema/seed) + migration (Flyway/dbmate, expand/contract).
+- [x] 1.3b drift `deliver-instance` (SG `k8s_nodes` + ổ 40GB): code đã sửa cho khớp, đã merge (PR #27), `plan` = No changes. Nợ nhỏ: kiểm tra lifecycle ECR "giữ 10 image" có đếm manifest không tag (attestation) hay không.
+- [ ] Nhóm 3: Postgres image + migration bằng **dbmate**.
+  - [x] Image `music-postgres` (PR #28): repo ECR + CI + release allow-list; hotspot SonarCloud "chạy root" đã đánh dấu Safe (entrypoint dùng root để chown rồi gosu xuống `postgres`; không thêm `USER postgres` vì dễ lỗi quyền volume, nếu cần không-root thì dùng `securityContext` ở K8s).
+  - [~] Bước 1-2 (nhánh `feat/dbmate`, đã commit, chờ push/PR): nguồn schema duy nhất là `week01-pre-k8s/db/migrations/` (`YYYYMMDDHHMMSS_ten.sql`, `-- migrate:up`/`-- migrate:down`); seed ở `db/seed/02-seed.sql` (chỉ dev). **Không sửa migration đã áp dụng**, mỗi thay đổi schema là file mới (expand: chỉ thêm, cột mới cho NULL; contract: xoá sau khi mọi app đã chuyển). Compose dev: service `migrate` (`ghcr.io/amacneil/dbmate:2`, `up`, chạy một lần, app `depends_on` `service_completed_successfully`) và `seed` (profile `seed`: `docker compose run --rm seed`, không idempotent). Image `music-postgres` copy binary dbmate + migrations + seed, `db/postgres/10-init.sh` chạy `dbmate up` qua unix socket rồi nạp seed khi volume trống (chỉ dev/CI; prod không dùng làm nguồn schema). `build-image.yaml` chọn `CONTEXT`/`DOCKERFILE` theo app (postgres: context `db/`, `-f db/postgres/Dockerfile`). Đã bỏ mount `initdb.d` khỏi compose prod. Sửa schema ở dev: thêm migration rồi `docker compose up -d` (hoặc `down -v` để dựng lại từ đầu).
+  - [ ] Bước 3 (PR riêng, đụng prod): service `migrate` trong `docker-compose.prod.yml` + Ansible (dọn bước copy `db/postgres`); **baseline** DB prod (tạo `schema_migrations`, chèn version của migration đã có sẵn) sau khi backup; thử expand/contract thật (thêm cột nullable).
 - [ ] Nhóm 4: Docker networks frontend/backend (`internal: true`).
 - [ ] 5.2/5.4/5.5: drift lab, S3 remote backend `use_lockfile`, thử lock.
 - [ ] Nhóm 6: CD (SSM Run Command qua OIDC, biến digest thay vì sửa compose, approval, rollback).
