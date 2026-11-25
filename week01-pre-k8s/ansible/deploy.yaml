@@ -36,6 +36,7 @@
         project_src: /home/ubuntu/music
         state: present
         pull: always
+      notify: Reload nginx
     - name: Make dir for nginx logging script
       ansible.builtin.file:
         path: /home/ubuntu/music/scripts
