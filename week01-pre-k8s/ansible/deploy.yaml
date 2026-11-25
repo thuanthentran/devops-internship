@@ -20,7 +20,8 @@
       ansible.builtin.copy:
         src: /home/ubuntu/devops-internship/week01-pre-k8s/db/migrations/
         dest: /home/ubuntu/music/db/migrations
-        mode: "0644"
+        mode: "0640"
+        directory_mode: "0750"
     - name: Login to AWS ECR
       ansible.builtin.shell: |
         aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com
