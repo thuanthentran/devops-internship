@@ -1,0 +1,3 @@
+postgres_user: music
+postgres_password: "{{ vault_postgres_password }}"
+postgres_db: music

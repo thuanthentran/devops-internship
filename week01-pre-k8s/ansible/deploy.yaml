@@ -1,6 +1,11 @@
 - name: Deploy music app to production server
   hosts: production
   tasks:
+    - name: Check postgres password is set
+      ansible.builtin.assert:
+        that: postgres_password | length > 0
+        fail_msg: "postgres_password is empty, check group_vars/production/vault.yml"
+      no_log: true
     - name: Create the directory
       ansible.builtin.file:
         path: /home/ubuntu/music
@@ -11,17 +16,23 @@
         src: /home/ubuntu/devops-internship/week01-pre-k8s/docker-compose.prod.yml
         dest: /home/ubuntu/music/docker-compose.yml
         mode: "0644"
-    - name: Copy .env to remote server
-      ansible.builtin.copy:
-        src: /home/ubuntu/devops-internship/week01-pre-k8s/.env
+    - name: Template for .env file
+      ansible.builtin.template:
+        src: env.j2
         dest: /home/ubuntu/music/.env
         mode: "0600"
+      no_log: true
     - name: Copy db/migrations to remote server
       ansible.builtin.copy:
         src: /home/ubuntu/devops-internship/week01-pre-k8s/db/migrations/
         dest: /home/ubuntu/music/db/migrations
         mode: "0640"
         directory_mode: "0750"
+    - name: Change mode of db/migrations directory
+      ansible.builtin.file:
+        path: /home/ubuntu/music/db/migrations
+        state: directory
+        mode: "0750"
     - name: Login to AWS ECR
       ansible.builtin.shell: |
         aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com
