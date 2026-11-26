@@ -1,0 +1,21 @@
+{% set roles = {
+  'music_api': api_password,
+  'music_java': java_password,
+  'music_rust': rust_password,
+  'music_python': python_password,
+} %}
+{% for name, password in roles.items() %}
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ name }}') THEN
+    CREATE ROLE {{ name }} LOGIN;
+  END IF;
+END
+$$;
+ALTER ROLE {{ name }} PASSWORD '{{ password }}';
+{% endfor %}
+
+GRANT SELECT ON artists, genres TO music_api;
+GRANT SELECT ON playlists, playlist_songs, songs, artists, genres TO music_java;
+GRANT SELECT ON songs, artists, genres TO music_rust;
+GRANT SELECT ON songs, artists, genres, playlists, playlist_songs TO music_python;
