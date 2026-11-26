@@ -189,13 +189,38 @@ services:
       - certbot-www:/var/www/certbot:rw
       - letsencrypt:/etc/letsencrypt:rw
     profiles: ["tools"]
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    restart: unless-stopped
+    mem_limit: 256m
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    networks: ["monitoring"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro # config: bind mount, chỉ đọc
+      - prom_data:/prometheus # dữ liệu TSDB: volume tên, ghi được
+    <<: *logging
+  node-exporter:
+    pid: host
+    image: prom/node-exporter:v1.13.1
+    restart: unless-stopped
+    networks: ["monitoring"]
+    command: --path.rootfs=/host
+    mem_limit: 64m
+    volumes:
+      - /:/host:ro,rslave
+    <<: *logging
 volumes:
   postgres_data:
   certbot-www:
   letsencrypt:
+  prom_data:
 networks:
   edge:
   app:
     internal: true
   data:
+    internal: true
+  monitoring:
     internal: true
