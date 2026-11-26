@@ -63,8 +63,8 @@ services:
     restart: unless-stopped
     networks: ["data", "app"]
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: music_api
+      POSTGRES_PASSWORD: ${API_DB_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     depends_on:
       postgres:
@@ -82,8 +82,8 @@ services:
     restart: unless-stopped
     networks: ["data", "app"]
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: music_java
+      POSTGRES_PASSWORD: ${JAVA_DB_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     depends_on:
       postgres:
@@ -105,8 +105,8 @@ services:
     mem_limit: 64m
     environment:
       REDIS_URL: redis://redis:6379
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: music_rust
+      POSTGRES_PASSWORD: ${RUST_DB_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     depends_on:
       postgres:
@@ -127,8 +127,8 @@ services:
     restart: unless-stopped
     networks: ["data", "app"]
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: music_python
+      POSTGRES_PASSWORD: ${PYTHON_DB_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     depends_on:
       postgres:

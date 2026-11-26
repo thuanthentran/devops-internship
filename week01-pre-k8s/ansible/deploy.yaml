@@ -1,6 +1,16 @@
 - name: Deploy music app to production server
   hosts: production
   tasks:
+    - name: Check passwords are set
+      ansible.builtin.assert:
+        that:
+          - postgres_password | length > 0
+          - api_password | length > 0
+          - java_password | length > 0
+          - rust_password | length > 0
+          - python_password | length > 0
+        fail_msg: "One or more passwords are empty, check group_vars/production/vault.yml"
+      no_log: true
     - name: Create the directory
       ansible.builtin.file:
         path: /home/ubuntu/music
@@ -11,17 +21,23 @@
         src: /home/ubuntu/devops-internship/week01-pre-k8s/docker-compose.prod.yml
         dest: /home/ubuntu/music/docker-compose.yml
         mode: "0644"
-    - name: Copy .env to remote server
-      ansible.builtin.copy:
-        src: /home/ubuntu/devops-internship/week01-pre-k8s/.env
+    - name: Template for .env file
+      ansible.builtin.template:
+        src: env.j2
         dest: /home/ubuntu/music/.env
         mode: "0600"
+      no_log: true
     - name: Copy db/migrations to remote server
       ansible.builtin.copy:
         src: /home/ubuntu/devops-internship/week01-pre-k8s/db/migrations/
         dest: /home/ubuntu/music/db/migrations
         mode: "0640"
         directory_mode: "0750"
+    - name: Change mode of db/migrations directory
+      ansible.builtin.file:
+        path: /home/ubuntu/music/db/migrations
+        state: directory
+        mode: "0750"
     - name: Login to AWS ECR
       ansible.builtin.shell: |
         aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com
@@ -31,6 +47,26 @@
         src: /home/ubuntu/devops-internship/week01-pre-k8s/nginx/conf.d/
         dest: /home/ubuntu/music/nginx/conf.d
       notify: Reload nginx
+    - name: Start postgres
+      ansible.builtin.command:
+        cmd: docker compose up -d --wait postgres
+        chdir: /home/ubuntu/music
+    - name: Sync password of the music role
+      ansible.builtin.command:
+        cmd: docker compose exec -T postgres psql -U music -d music -v ON_ERROR_STOP=1
+        chdir: /home/ubuntu/music
+        stdin: "ALTER ROLE music PASSWORD '{{ postgres_password }}';"
+      no_log: true
+    - name: Apply migrations
+      ansible.builtin.command:
+        cmd: docker compose run --rm -T migrate
+        chdir: /home/ubuntu/music
+    - name: Create roles and grant privileges
+      ansible.builtin.command:
+        cmd: docker compose exec -T postgres psql -U music -d music -v ON_ERROR_STOP=1
+        chdir: /home/ubuntu/music
+        stdin: "{{ lookup('template', 'db-roles.sql.j2') }}"
+      no_log: true
     - name: Deploy the application using docker-compose
       community.docker.docker_compose_v2:
         project_src: /home/ubuntu/music

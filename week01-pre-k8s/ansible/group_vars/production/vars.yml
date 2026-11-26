@@ -1,0 +1,7 @@
+postgres_user: music
+postgres_password: "{{ vault_postgres_password }}"
+postgres_db: music
+api_password: "{{ vault_api_password }}"
+java_password: "{{ vault_java_password }}"
+rust_password: "{{ vault_rust_password }}"
+python_password: "{{ vault_python_password }}"
