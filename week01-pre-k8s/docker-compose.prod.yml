@@ -8,6 +8,7 @@ services:
   postgres:
     image: postgres:18-alpine
     restart: unless-stopped
+    networks: ["data"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -25,6 +26,7 @@ services:
     image: ghcr.io/amacneil/dbmate@sha256:fb4fe7cabfe98cf864d63ce083867f3c303a8c1a022fcd69081439425706e909
     restart: "no"
     command: ["up"]
+    networks: ["data"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
       DBMATE_MIGRATIONS_DIR: /db/migrations
@@ -39,6 +41,7 @@ services:
     image: redis:8-alpine
     restart: unless-stopped
     mem_limit: 64m
+    networks: ["data"]
     command:
       [
         "redis-server",
@@ -58,6 +61,7 @@ services:
   api:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-api:1eb83b5
     restart: unless-stopped
+    networks: ["data", "app"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -76,6 +80,7 @@ services:
   java:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-java:1eb83b5
     restart: unless-stopped
+    networks: ["data", "app"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -96,6 +101,7 @@ services:
   rust:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-rust:1eb83b5
     restart: unless-stopped
+    networks: ["data", "app"]
     mem_limit: 64m
     environment:
       REDIS_URL: redis://redis:6379
@@ -119,6 +125,7 @@ services:
   python:
     image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-python:1eb83b5
     restart: unless-stopped
+    networks: ["data", "app"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -143,20 +150,19 @@ services:
       retries: 5
     <<: *logging
   web:
-    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web:1eb83b5
+    image: 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com/music-web:7eb0daf
     restart: unless-stopped
+    networks: ["edge"]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      api:
-        condition: service_healthy
     <<: *logging
   nginx:
     image: nginx:1.28-alpine
     restart: unless-stopped
+    networks: ["edge", "app"]
     ports:
       - "80:80"
       - "443:443"
@@ -178,6 +184,7 @@ services:
     <<: *logging
   certbot:
     image: certbot/certbot
+    networks: ["edge"]
     volumes:
       - certbot-www:/var/www/certbot:rw
       - letsencrypt:/etc/letsencrypt:rw
@@ -186,3 +193,9 @@ volumes:
   postgres_data:
   certbot-www:
   letsencrypt:
+networks:
+  edge:
+  app:
+    internal: true
+  data:
+    internal: true
