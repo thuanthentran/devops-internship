@@ -9,6 +9,7 @@
           - java_password | length > 0
           - rust_password | length > 0
           - python_password | length > 0
+          - grafana_password | length > 0
         fail_msg: "One or more passwords are empty, check group_vars/production/vault.yml"
       no_log: true
     - name: Create the directory
@@ -48,6 +49,23 @@
         src: /home/ubuntu/devops-internship/week01-pre-k8s/monitoring/prometheus.yml
         dest: /home/ubuntu/music/monitoring/prometheus.yml
         mode: "0644"
+    - name: Create grafana directory
+      ansible.builtin.file:
+        path: /home/ubuntu/music/monitoring/grafana
+        state: directory
+        mode: "0755"
+    - name: Copy grafana provisioning
+      ansible.builtin.copy:
+        src: /home/ubuntu/devops-internship/week01-pre-k8s/monitoring/grafana/provisioning/
+        dest: /home/ubuntu/music/monitoring/grafana/provisioning
+        mode: "0644"
+        directory_mode: "0755"
+    - name: Copy grafana dashboards
+      ansible.builtin.copy:
+        src: /home/ubuntu/devops-internship/week01-pre-k8s/monitoring/grafana/dashboards/
+        dest: /home/ubuntu/music/monitoring/grafana/dashboards
+        mode: "0644"
+        directory_mode: "0755"
     - name: Login to AWS ECR
       ansible.builtin.shell: |
         aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 879601755746.dkr.ecr.ap-southeast-1.amazonaws.com
