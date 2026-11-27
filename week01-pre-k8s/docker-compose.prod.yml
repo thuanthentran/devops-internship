@@ -189,13 +189,61 @@ services:
       - certbot-www:/var/www/certbot:rw
       - letsencrypt:/etc/letsencrypt:rw
     profiles: ["tools"]
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    restart: unless-stopped
+    mem_limit: 256m
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    networks: ["monitoring"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro # config: bind mount, chỉ đọc
+      - prom_data:/prometheus # dữ liệu TSDB: volume tên, ghi được
+    <<: *logging
+  node-exporter:
+    pid: host
+    image: prom/node-exporter:v1.13.1
+    restart: unless-stopped
+    networks: ["monitoring"]
+    command: --path.rootfs=/host
+    mem_limit: 64m
+    volumes:
+      - /:/host:ro,rslave
+    <<: *logging
+  grafana:
+    image: grafana/grafana:13.0
+    networks: ["monitoring", "edge"]
+    restart: unless-stopped
+    mem_limit: 256m
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    <<: *logging
 volumes:
   postgres_data:
   certbot-www:
   letsencrypt:
+  prom_data:
+  grafana_data:
 networks:
   edge:
   app:
     internal: true
   data:
+    internal: true
+  monitoring:
     internal: true
